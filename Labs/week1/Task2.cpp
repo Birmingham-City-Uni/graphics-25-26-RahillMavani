@@ -19,12 +19,12 @@ int main()
 	// If you'd like, you can use the setPixel function you wrote in the previous task.
 	// The code below reduces the brightness of the image by 0.5x, as an example.
 
-	for(int y = 0; y < height; ++y) 
+	/*for(int y = 0; y < height; ++y) 
 		for (int x = 0; x < width; ++x) 
 			for (int c = 0; c < 3; ++c) {
 				int pixelIdx = x + y * width;
 				imageBuffer[pixelIdx * 4 + c] *= 0.5;
-			}
+			}*/
 
 	// Once you have tested this code, comment out the for loops above and try the following tasks:
 	// * Task 1: Try making a *negative* of the input image. Pixels that are bright in the input
