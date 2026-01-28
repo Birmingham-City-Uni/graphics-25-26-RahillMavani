@@ -19,12 +19,12 @@ int main()
 	// If you'd like, you can use the setPixel function you wrote in the previous task.
 	// The code below reduces the brightness of the image by 0.5x, as an example.
 
-	for(int y = 0; y < height; ++y) 
+	/*for(int y = 0; y < height; ++y) 
 		for (int x = 0; x < width; ++x) 
 			for (int c = 0; c < 3; ++c) {
 				int pixelIdx = (x + y * width) * 4;
 				imageBuffer[pixelIdx + c] = 255 - imageBuffer[pixelIdx + c];
-			}
+			}*/
 
 	// Once you have tested this code, comment out the for loops above and try the following tasks:
 	// * Task 1: Try making a *negative* of the input image. Pixels that are bright in the input
@@ -37,6 +37,32 @@ int main()
 	//           You can either just keep one in every 4 pixels, or better yet, average the pixels in each 2x2 block.
 	//           Hint: Be careful when averaging! You probably want to convert the pixel values to floating-point to
 	//           do the averaging maths.
+
+	unsigned int newW = width / 2;
+	unsigned int newH = height / 2;
+
+	std::vector<uint8_t> newBuffer(newW * newH * 4);
+
+	for (unsigned int y = 0; y < newH; y++)
+	{
+		for (unsigned int x = 0; x < newW; x++)
+		{
+			for (int c = 0; c < 4; c++)
+			{
+				int oldX = x * 2;
+				int oldY = y * 2;
+
+				int p1 = imageBuffer[((oldX + 0) + (oldY + 0) * width) * 4 + c];
+				int p2 = imageBuffer[((oldX + 1) + (oldY + 0) * width) * 4 + c];
+				int p3 = imageBuffer[((oldX + 0) + (oldY + 1) * width) * 4 + c];
+				int p4 = imageBuffer[((oldX + 1) + (oldY + 1) * width) * 4 + c];
+
+				uint8_t average = (uint8_t)((p1 + p2 + p3 + p4) / 4);
+
+				newBuffer[(x + y * newW) * 4 + c] = 255 - average;
+			}
+		}
+	}
 
 	int errorCode;
 	errorCode = lodepng::encode(outputFilename, imageBuffer, width, height);
