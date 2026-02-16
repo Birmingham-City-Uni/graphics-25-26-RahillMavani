@@ -84,7 +84,9 @@ int main()
 
 		int x = v[0] * 250 + width / 2;
 		int y = -v[1] * 250 + height / 2;
-		setPixel(imageBuffer, x, y, width, height, 255, 255, 255);
+		if (x >= 0 && x < width && y >= 0 && y < height) {
+			setPixel(imageBuffer, x, y, width, height, 255, 255, 255);
+		}
 	}
 
 
