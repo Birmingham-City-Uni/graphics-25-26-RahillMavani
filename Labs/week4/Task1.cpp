@@ -51,6 +51,8 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 	const Eigen::Vector2f& p0, const Eigen::Vector2f& p1, const Eigen::Vector2f& p2,
 	uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
 {
+
+
 	// Find a bounding box around the triangle
 	int minX, minY, maxX, maxY;
 	minX = std::min(std::min(p0.x(), p1.x()), p2.x());
@@ -73,6 +75,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 		return;
 	}
 
+
 	for(int x = minX; x <= maxX; ++x) 
 		for (int y = minY; y <= maxY; ++y) {
 			Eigen::Vector2f p(x, y);
@@ -86,12 +89,16 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 			float b2 = a2 / triangleArea;
 
 			float sum = b0 + b1 + b2;
+			
 			if (sum > 1.0001) {
 				continue;
 			}
 
+
 			setPixel(image, x, y, width, height, r, g, b, a);
 		}
+
+
 }
 
 
@@ -115,9 +122,12 @@ void drawMesh(std::vector<unsigned char>& image, const Mesh& mesh,
 		// The matrix is 4x4, and the v0, v1, v2 are 3D! You'll need to convert them to 4D 
 		// homogeneous vectors first (add a 1 in the w component).
 		// You can use the vec3ToVec4 function above to do this.
-		tv0 = Eigen::Vector4f::Zero();
-		tv1 = Eigen::Vector4f::Zero();
-		tv2 = Eigen::Vector4f::Zero();
+
+
+
+		tv0 = transform * vec3ToVec4(v0);
+		tv1 = transform * vec3ToVec4(v1);
+		tv2 = transform * vec3ToVec4(v2);
 
 		Eigen::Vector2f p0(tv0.x() * 250 + width / 2, -tv0.y() * 250 + height / 2);
 		Eigen::Vector2f p1(tv1.x() * 250 + width / 2, -tv1.y() * 250 + height / 2);
@@ -134,7 +144,9 @@ void drawMesh(std::vector<unsigned char>& image, const Mesh& mesh,
 				baseColor.x() * intensity * 255,
 				baseColor.y() * intensity * 255,
 				baseColor.z() * intensity * 255);
+
 		}
+
 	}
 }
 
@@ -143,6 +155,11 @@ void drawMesh(std::vector<unsigned char>& image, const Mesh& mesh,
 Eigen::Matrix4f translationMatrix(const Eigen::Vector3f& t)
 {
 	// *** Your code here ***
+	Eigen::Matrix4f m = Eigen::Matrix4f::Identity();
+	m(0, 3) = t.x();
+	m(1, 3) = t.y();
+	m(2, 3) = t.z();
+	return m;
 	return Eigen::Matrix4f::Identity();
 }
 
@@ -150,6 +167,11 @@ Eigen::Matrix4f translationMatrix(const Eigen::Vector3f& t)
 Eigen::Matrix4f scaleMatrix(float s)
 {
 	// *** Your code here ***
+	Eigen::Matrix4f m = Eigen::Matrix4f::Identity();
+	m(0, 0) = s;
+	m(1, 1) = s;
+	m(2, 2) = s;
+	return m;
 	return Eigen::Matrix4f::Identity();
 }
 
@@ -159,6 +181,12 @@ Eigen::Matrix4f scaleMatrix(float s)
 Eigen::Matrix4f rotateYMatrix(float theta)
 {
 	// *** Your code here ***
+	Eigen::Matrix4f m = Eigen::Matrix4f::Identity();
+	m(0, 0) = cos(theta);
+	m(0, 2) = sin(theta);
+	m(2, 0) = -sin(theta);
+	m(2, 2) = cos(theta);
+	return m;
 	return Eigen::Matrix4f::Identity();
 }
 
@@ -257,9 +285,11 @@ int main()
 
 	std::string bunnyFilename = "../models/stanford_bunny_simplified.obj";
 	std::string dragonFilename = "../models/stanford_dragon_simplified.obj";
+	std::string carFilename = "../models/uploads_files_3295091_Lexus+lfa+object.obj";
 
 	Mesh bunnyMesh = loadMeshFile(bunnyFilename);
 	Mesh dragonMesh = loadMeshFile(dragonFilename);
+	//Mesh carMesh = loadMeshFile(carFilename);
 
 
 	// ============ TASK 3 =================
@@ -270,8 +300,19 @@ int main()
 	// TIP: Think about the order of your transforms. Do you want to rotate first,
 	//      scale first, or translate first? Does the order matter?
 
+
+
 	Eigen::Matrix4f bunnyTransform = Eigen::Matrix4f::Identity();
 	Eigen::Matrix4f dragonTransform = Eigen::Matrix4f::Identity();
+	//Eigen::Matrix4f carTransform = Eigen::Matrix4f::Identity();
+
+	// Convert 45 degrees to radians for the rotation function
+	float angle = 0.0f * (M_PI / 180.0f);
+
+	// Order: Translate * Rotate * Scale
+	bunnyTransform = translationMatrix(Eigen::Vector3f(-0.5f, 0, 0)) * rotateYMatrix(angle) * scaleMatrix(0.5f);
+	dragonTransform = translationMatrix(Eigen::Vector3f(0.3f, 0.5, 0)) * scaleMatrix(0.8f);
+	//carTransform = translationMatrix(Eigen::Vector3f(0.0f, 0, 0)) * scaleMatrix(0.8f);
 
 	// =========== TASK 4 ==============
 	// Prepare your own mesh in blender, exporting as OBJ
@@ -280,6 +321,9 @@ int main()
 
 	drawMesh(imageBuffer, bunnyMesh, Eigen::Vector3f(0, 1, 0), bunnyTransform, width, height);
 	drawMesh(imageBuffer, dragonMesh, Eigen::Vector3f(0, 1, 1), dragonTransform, width, height);
+
+	//std::vector<float> zBuffer(width* height, std::numeric_limits<float>::max());
+	//drawMesh(imageBuffer, carMesh, Eigen::Vector3f(0, 1, 1), carTransform, width, height);
 
 	// *** Encoding image data ***
 	// PNG files are compressed to save storage space. 
