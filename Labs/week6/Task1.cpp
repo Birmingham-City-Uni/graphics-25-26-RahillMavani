@@ -100,7 +100,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 
 			// If outside triangle, exit early
 			float sum = b0 + b1 + b2;
-			if (sum > 1.0001) {
+			if (sum > 1.01) {
 				continue;
 			}
 			
@@ -163,7 +163,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 			// that 0 <= texC < texWidth and 0 <= texR < texHeight.
 			texC = std::max(0, std::min(texC, (int)texWidth - 1));
 			texR = std::max(0, std::min(texR, (int)texHeight - 1));
-
+        
 			// Get the value from the texture (hint: use the getPixel function on the albedoTexture).
 			Color texColor = getPixel(albedoTexture, texC, texR, texWidth, texHeight);
 
@@ -276,9 +276,9 @@ void drawMesh(std::vector<unsigned char>& image,
 		// Work out the screen space coordinates based on the image height and width.
 		// Set the z component of each screen coordinate to be the clip-space z (for example
 		// t.screen[0].z() == vClip0.z());
-		t.screen[0] = Eigen::Vector3f(width * (vClip0.x() + 1.0f) / 2.0f, height * (vClip0.y() + 1.0f) / 2.0f, vClip0.z());
-		t.screen[1] = Eigen::Vector3f(width * (vClip1.x() + 1.0f) / 2.0f, height * (vClip1.y() + 1.0f) / 2.0f, vClip1.z());
-		t.screen[2] = Eigen::Vector3f(width * (vClip2.x() + 1.0f) / 2.0f, height * (vClip2.y() + 1.0f) / 2.0f, vClip2.z());
+		t.screen[0] = Eigen::Vector3f(width * (vClip0.x() + 1.0f) / 2.0f, height * (-vClip0.y() + 1.0f) / 2.0f, vClip0.z());
+		t.screen[1] = Eigen::Vector3f(width * (vClip1.x() + 1.0f) / 2.0f, height * (-vClip1.y() + 1.0f) / 2.0f, vClip1.z());
+		t.screen[2] = Eigen::Vector3f(width * (vClip2.x() + 1.0f) / 2.0f, height * (-vClip2.y() + 1.0f) / 2.0f, vClip2.z());
 		// *** END YOUR CODE ***
 
 		// transform the normals (using the inverse transpose of the upper 3x3 block)
@@ -327,7 +327,7 @@ int main()
 
 	// This matrix rotates the camera, tilting it down, then translates it up to make it look down on the scene.
 	// Once your code is working, try changing this to move the camera around!
-	Eigen::Matrix4f cameraToWorld = translationMatrix(Eigen::Vector3f(0.f, 0.8f, 0.f)) * rotateXMatrix(0.4f);
+	Eigen::Matrix4f cameraToWorld = translationMatrix(Eigen::Vector3f(0.0f, 0.8f, 0.0f)) * rotateXMatrix(0.4f);
 
 	// The main important task = set up the worldToCamera and worldToClip matrices here!
 	// Set up worldToCamera, based on cameraToWorld above
