@@ -12,7 +12,8 @@ Eigen::Vector3f reflect(const Eigen::Vector3f& incoming, const Eigen::Vector3f& 
 {
 	// *** YOUR CODE HERE ***
 	// replace this with the reflected vector.
-	return Eigen::Vector3f::Zero();
+	const Eigen::Vector3f reflectionDir = incoming + 2 * fabsf(incoming.dot(normal)) * normal;
+	return reflectionDir.normalized();
 	// *** END YOUR CODE ***
 }
 
@@ -30,16 +31,16 @@ float phongSpecularTerm(const Eigen::Vector3f& incomingLightDir, const Eigen::Ve
 {
 	// *** YOUR CODE HERE ***
 	// Find the reflected direction using the reflect function
-	Eigen::Vector3f reflectionDir = Eigen::Vector3f::Zero();
+	Eigen::Vector3f reflectionDir = reflect(incomingLightDir, normal);
 
 	// Find dot product between reflected and view directions.
-	float reflectDotNorm = 0.f;
+	float reflectDotNorm = reflectionDir.dot(viewDir);
 
 	// Make sure dot product is non-negative (if it's less than 0, set it to 0!)
-	reflectDotNorm = 0.f;
+	reflectDotNorm = std::max(0.0f, reflectDotNorm);
 
 	// Finally, raise to specular exponent and return.
-	return 0.f;
+	return std::pow(reflectDotNorm, exponent);
 	// *** END YOUR CODE ***
 }
 
@@ -56,16 +57,20 @@ float phongSpecularTerm(const Eigen::Vector3f& incomingLightDir, const Eigen::Ve
 float blinnPhongSpecularTerm(const Eigen::Vector3f& incomingLightDir, const Eigen::Vector3f& normal, const Eigen::Vector3f& viewDir, float exponent)
 {
 	// *** YOUR CODE HERE ***
+	
+	Eigen::Vector3f lightDir = -incomingLightDir;
+
 	// Find the half-vector (average of view dir and light dir)
-	Eigen::Vector3f halfVec = Eigen::Vector3f::Zero();
+	Eigen::Vector3f halfVec = (lightDir + viewDir).normalized();
 
 	// Find dot product of half-vector and normal.
-	float halfDotNorm = 0.f;
+	float halfDotNorm = halfVec.dot(normal);
 	
 	// Force the dot product to be non-negative (if <0, set to 0)
+	halfDotNorm = std::max(0.0f, halfDotNorm);
 
 	//Return the dot product raised to the exponent
-	return 0.f;
+	return std::pow(halfDotNorm, exponent);
 	// *** END YOUR CODE ***
 }
 
