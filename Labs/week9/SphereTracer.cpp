@@ -79,15 +79,47 @@ bool raySphereIntersection(const Ray& ray, const Sphere& sphere, Vector3f& inter
 
 	// Steps:
 	// 1. Find the value of A, B and C from the lecture slides.
+	
+	Vector3f L = ray.origin - sphere.centre;
+	float A = ray.direction.dot(ray.direction);
+	float B = 2.0f * ray.direction.dot(L);
+	float C = L.dot(L) - (sphere.radius * sphere.radius);
+
 	// 2. Find the value of the discriminant B^2 - 4AC
+	
+	float discriminant = B * B - 4 * A * C;
+	
 	// 3. If the discriminant is less than 0, return false (no solutions).
+	 
+	if (discriminant < 0)
+	{
+		return false;
+	}
+	
 	// 4. Otherwise, find the two solutions for t (t1 and t2, for example).
+	
+	float sqrtDisc = sqrt(discriminant);
+	float t1 = (-B - sqrtDisc) / (2.0f * A);
+	float t2 = (-B + sqrtDisc) / (2.0f * A);
+
 	// 5. Find the smallest solution for t that's bigger than minT.
 	//   a. If such a t exists, set the value of "intersection" and "t" and return true.
 	//   b. If no such t exists, return false.
 
-	// Remove this existing code, that just always returns false.
-	return false;
+	float tempT = t1;
+	if (tempT < minT)
+	{
+		tempT = t2;
+	}
+
+	if (tempT < minT)
+	{
+		return false;
+	}
+
+	t = tempT;
+	intersection = ray.origin + t * ray.direction;
+	return true;
 	// *** END YOUR CODE ***
 } 
 
@@ -98,8 +130,7 @@ Vector3f getSphereNormal(const Sphere& sphere, const Vector3f& location) {
 	// This should only need one line of code!
 	// See the slides for more detail.
 	// 
-	// Remove this existing code that just returns 0.
-	return Vector3f::Zero();
+	return (location - sphere.centre).normalized();
 	// *** END YOUR CODE ***
 }
 
@@ -109,16 +140,28 @@ bool refract(const Vector3f& incident, const Vector3f& norm, float eta, Vector3f
 	// Find the refracted ray! Set the refracted variable to equal the refracted direction.
 	// If a ray is refracted, return true. If Total Internal Reflection (TIR) occurs, return false.
 	// If you return false you don't need to set the value of "refracted"!
-
+	
+	float dotNI = incident.dot(norm);
 
 	// Steps:
 	// 1. Find the value of the "k" from the lecture slides.
+	
+	float k = 1.0f - eta * eta * (1.0f - dotNI * dotNI);
+	
 	// 2. If k < 0, return false (TIR occurs).
+	
+	if (k < 0.0f) 
+	{
+		return false;
+	}
+	
 	// 3. Otherwise, find the refracted ray and return true.
 
-	// This existing code just always returns false.
-	// Remove it when you write your own code!
-	return false;
+	else 
+	{
+		refracted = eta * incident + (eta * (-dotNI) - sqrt(k)) * norm;
+		return true;
+	}
 	// *** END YOUR CODE
 }
 
