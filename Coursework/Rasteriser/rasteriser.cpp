@@ -62,6 +62,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 	const std::vector<std::unique_ptr<Light>>& lights,
 	const Eigen::Vector3f& albedo, const Eigen::Vector3f& specularColor,
 	float specularExponent,
+	const std::vector<unsigned char>& textureData, unsigned texWidth, unsigned texHeight,
 	ShadingMode shadingMode,
 	const Eigen::Vector3f& camWorldPos)
 {
@@ -136,18 +137,42 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 
 			// Work out colour at this position.
 			Eigen::Vector3f color = Eigen::Vector3f::Zero();
-
 			Eigen::Vector3f viewDir = (camWorldPos - worldP).normalized();
+
+			//WEEK 6 TEXTURE MAPPING
+			Eigen::Vector3f finalAlbedo = albedo; // Default to the solid math color
+
+
+			if (!textureData.empty()) {
+				//perspective-correct UV interpolation
+				Eigen::Vector2f texP =
+					(b0 * (t.texs[0] / depth0) +
+						b1 * (t.texs[1] / depth1) +
+						b2 * (t.texs[2] / depth2)) * depthP;
+
+				//wrap the UVs (prevents crashing if UVs go outside 0 to 1)
+				float u = texP.x() - floor(texP.x());
+				float v = texP.y() - floor(texP.y());
+
+				//convert UV to actual PNG pixel coordinates (Invert V because images load top-down)
+				int tx = static_cast<int>(u * (texWidth - 1));
+				int ty = static_cast<int>((1.0f - v) * (texHeight - 1));
+
+				//fetch the RGB color from the Substance Painter texture
+				int texIdx = (ty * texWidth + tx) * 4;
+				finalAlbedo = Eigen::Vector3f(
+					textureData[texIdx] / 255.0f,
+					textureData[texIdx + 1] / 255.0f,
+					textureData[texIdx + 2] / 255.0f
+				);
+			}
+			
 
 			// Iterate over lights, and sum to find colour.
 			for (auto& light : lights) {
 
-				// Work out the contribution from this light source, and add it to the color variable.
-
-				// Work out the intensity of this light source, at the point worldP.
 				Eigen::Vector3f lightIntensity = light->getIntensityAt(worldP);
 
-				// We only need to do the following if the light isn't an ambient light.
 				if (light->getType() != Light::Type::AMBIENT) {
 					Eigen::Vector3f incomingLightDir = light->getDirection(worldP);
 
@@ -162,23 +187,18 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 					Eigen::Vector3f specularOut = specularColor * specularTerm;
 					specularOut = coeffWiseMultiply(specularOut, lightIntensity);
 
-					// Take the dot product of the normal with the light direction.
 					float dotProd = normP.dot(-incomingLightDir);
-
-					// We don't want negative light - if dot product less than 0, set it to 0.
 					dotProd = std::max(dotProd, 0.0f);
 
-					// Multiply the light intensity by the dot product.
+				
 					Eigen::Vector3f diffuseOut = lightIntensity * dotProd;
-					diffuseOut = coeffWiseMultiply(diffuseOut, albedo);
+					diffuseOut = coeffWiseMultiply(diffuseOut, finalAlbedo);
 
 					color += specularOut;
-					//color += diffuseOut;
-					//color = (incomingLightDir + Eigen::Vector3f::Ones()) / 2;
+					color += diffuseOut;
 				}
 				else {
-					// Light is ambient - just multiply light intensity with albedo.
-					color += coeffWiseMultiply(lightIntensity, albedo);
+					color += coeffWiseMultiply(lightIntensity, finalAlbedo);
 				}
 			}
 
@@ -201,6 +221,7 @@ void drawMesh(std::vector<unsigned char>& image,
 	const Mesh& mesh,
 	const Eigen::Vector3f& albedo, const Eigen::Vector3f& specularColor,
 	float specularExponent,
+	const std::vector<unsigned char>& textureData, unsigned texWidth, unsigned texHeight,
 	ShadingMode shadingMode,
 	const Eigen::Vector3f& camWorldPos,
 	const Eigen::Matrix4f& modelToWorld,
@@ -255,7 +276,7 @@ void drawMesh(std::vector<unsigned char>& image,
 		t.texs[1] = mesh.texs[mesh.tFaces[i][1]];
 		t.texs[2] = mesh.texs[mesh.tFaces[i][2]];
 
-		drawTriangle(image, width, height, zBuffer, t, lights, albedo, specularColor, specularExponent, shadingMode, camWorldPos);
+		drawTriangle(image, width, height, zBuffer, t, lights, albedo, specularColor, specularExponent, textureData, texWidth, texHeight, shadingMode, camWorldPos);
 	}
 }
 
@@ -268,28 +289,55 @@ int main()
 {
 	std::string outputFilename = "lexus_render.png";
 
-	// Your requested resolution!
-	const int width = 1920, height = 1080;
+	//ANTI-ALIASING
+	const int finalWidth = 1920, finalHeight = 1080;
+	const int aaMultiplier = 2; //2x SSAA
+
+	const int renderWidth = finalWidth * aaMultiplier;
+	const int renderHeight = finalHeight * aaMultiplier;
 	const int nChannels = 4;
 
-	std::vector<uint8_t> imageBuffer(height * width * nChannels);
-	std::vector<float> zBuffer(height * width);
+	//internal buffers
+	std::vector<uint8_t> renderBuffer(renderHeight * renderWidth * nChannels);
+	std::vector<float> zBuffer(renderHeight * renderWidth);
 
-	//clear the screen to Black and reset Z-Buffer
+	//clear the high-res screen to Dark Grey and reset Z-Buffer
 	Color bg{ 50, 50, 50, 255 };
-	for (int y = 0; y < height; ++y) {
-		for (int x = 0; x < width; ++x) {
-			setPixel(imageBuffer, x, y, width, height, bg);
-			zBuffer[x + y * width] = 999999.0f;
+	for (int y = 0; y < renderHeight; ++y) {
+		for (int x = 0; x < renderWidth; ++x) {
+			setPixel(renderBuffer, x, y, renderWidth, renderHeight, bg);
+			zBuffer[x + y * renderWidth] = 999999.0f;
 		}
 	}
 
 	//load the Car
 	std::cout << "Loading Lexus Model..." << std::endl;
-	Mesh carMesh = loadMeshFile("../lexus.obj"); // <-- Make sure lexus.obj is one folder up from the build folder!
+	Mesh carMesh = loadMeshFile("../lexus_body.obj");
+	Mesh car2Mesh = loadMeshFile("../lexus_wheels.obj");
+	Mesh car3Mesh = loadMeshFile("../lexus_calliper.obj");
+	Mesh car4Mesh = loadMeshFile("../lexus_calliper_2.obj");
+	Mesh car5Mesh = loadMeshFile("../lexus_glass.obj");
+	Mesh car6Mesh = loadMeshFile("../lexus_glass_2.obj");
+	Mesh car7Mesh = loadMeshFile("../lexus_grill.obj");
+	Mesh car8Mesh = loadMeshFile("../lexus_grill_2.obj");
+
+	//TEXTURE LOADING
+	std::cout << "Loading Textures..." << std::endl;
+	std::vector<uint8_t> bodyTex, glassTex, glass_2Tex, grillTex, grill_2Tex, wheelsTex, calliperTex;
+
+	//give each texture its own width and height variables
+	unsigned w1, h1, w2, h2, w3, h3, w4, h4, w5, h5, w6, h6, w7, h7;
+
+	lodepng::decode(bodyTex, w1, h1, "../lexus_body.png");
+	lodepng::decode(glassTex, w2, h2, "../lexus_glass.png");
+	lodepng::decode(wheelsTex, w3, h3, "../lexus_wheels.png");
+	lodepng::decode(calliperTex, w4, h4, "../lexus_calliper.png");
+	lodepng::decode(glass_2Tex, w5, h5, "../lexus_glass_2.png");
+	lodepng::decode(grillTex, w6, h6, "../lexus_grill.png");
+	lodepng::decode(grill_2Tex, w7, h7, "../lexus_grill_2.png");
 
 	//set up the Camera Lens
-	Eigen::Matrix4f projection = projectionMatrix(height, width);
+	Eigen::Matrix4f projection = projectionMatrix(renderHeight, renderWidth, 70.f * M_PI / 180.f, 1000.f, 0.1f);
 
 	//move the camera back 8 units
 	Eigen::Matrix4f cameraToWorld = translationMatrix(Eigen::Vector3f(0.0f, 0.0f, -8.0f));
@@ -298,7 +346,7 @@ int main()
 
 	//set up the Lights
 	std::vector<std::unique_ptr<Light>> lights;
-	lights.emplace_back(new AmbientLight(Eigen::Vector3f(0.2f, 0.2f, 0.2f)));
+	lights.emplace_back(new AmbientLight(Eigen::Vector3f(0.3f, 0.3f, 0.3f)));
 	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.9f, 0.9f, 0.9f), Eigen::Vector3f(0.5f, -1.0f, 1.f)));
 
 	//position the Car
@@ -306,16 +354,74 @@ int main()
 
 	//RENDER!
 	std::cout << "Rendering Engine Starting..." << std::endl;
-	drawMesh(imageBuffer, zBuffer, carMesh,
-		Eigen::Vector3f(0.8f, 0.1f, 0.1f), // Base color (Red)
-		Eigen::Vector3f(1.0f, 1.0f, 1.0f), // Specular highlight color (White)
-		64.f,                              // Shininess (High = sharp mirror reflection)
-		BLINN_PHONG,                       // Shading mode
-		camWorldPos, carTransform, worldToCamera, projection, lights, width, height);
 
-	//save the Image
+	//CAR BODY 
+	drawMesh(renderBuffer, zBuffer, carMesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.0f, 1.0f, 1.0f), 128.f,
+		bodyTex, w1, h1, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+
+	//GLASS
+	drawMesh(renderBuffer, zBuffer, car5Mesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.5f, 1.5f, 1.5f), 512.f,
+		glassTex, w2, h2, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+	drawMesh(renderBuffer, zBuffer, car6Mesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.5f, 1.5f, 1.5f), 512.f,
+		glass_2Tex, w5, h5, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+
+	//WHEELS / RUBBER
+	drawMesh(renderBuffer, zBuffer, car2Mesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(0.05f, 0.05f, 0.05f), 2.f,
+		wheelsTex, w3, h3, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+
+	//GRILLS & METAL
+	drawMesh(renderBuffer, zBuffer, car7Mesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.0f, 1.0f, 1.0f), 256.f,
+		grillTex, w6, h6, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+	drawMesh(renderBuffer, zBuffer, car8Mesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.0f, 1.0f, 1.0f), 256.f,
+		grill_2Tex, w7, h7, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+
+	//CALLIPERS
+	drawMesh(renderBuffer, zBuffer, car3Mesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.0f, 1.0f, 1.0f), 128.f,
+		calliperTex, w4, h4, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+	drawMesh(renderBuffer, zBuffer, car4Mesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.0f, 1.0f, 1.0f), 128.f,
+		calliperTex, w4, h4, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+
+	//SSAA DOWNSAMPLE
+	std::cout << "Applying Anti-Aliasing..." << std::endl;
+	std::vector<uint8_t> finalImage(finalHeight * finalWidth * nChannels);
+
+	for (int y = 0; y < finalHeight; ++y) {
+		for (int x = 0; x < finalWidth; ++x) {
+			int r = 0, g = 0, b = 0;
+
+			//sample the 4 pixels (2x2 grid) from the massive render buffer
+			for (int dy = 0; dy < aaMultiplier; ++dy) {
+				for (int dx = 0; dx < aaMultiplier; ++dx) {
+					int rx = x * aaMultiplier + dx;
+					int ry = y * aaMultiplier + dy;
+					int rIdx = (ry * renderWidth + rx) * 4;
+
+					r += renderBuffer[rIdx + 0];
+					g += renderBuffer[rIdx + 1];
+					b += renderBuffer[rIdx + 2];
+				}
+			}
+
+			//average the colors and save to the final 1080p image
+			int fIdx = (y * finalWidth + x) * 4;
+			finalImage[fIdx + 0] = r / (aaMultiplier * aaMultiplier);
+			finalImage[fIdx + 1] = g / (aaMultiplier * aaMultiplier);
+			finalImage[fIdx + 2] = b / (aaMultiplier * aaMultiplier);
+			finalImage[fIdx + 3] = 255;
+		}
+	}
+
+	//save the final, smoothed Image
 	std::cout << "Saving image..." << std::endl;
-	int errorCode = lodepng::encode(outputFilename, imageBuffer, width, height);
+	int errorCode = lodepng::encode(outputFilename, finalImage, finalWidth, finalHeight);
 	if (errorCode) {
 		std::cout << "lodepng error encoding image: " << lodepng_error_text(errorCode) << std::endl;
 		return errorCode;
