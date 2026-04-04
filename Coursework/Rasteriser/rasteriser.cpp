@@ -28,7 +28,7 @@ struct Triangle {
 };
 
 
-Eigen::Matrix4f projectionMatrix(int height, int width, float horzFov = 70.f * M_PI / 180.f, float zFar = 10.f, float zNear = 0.1f)
+Eigen::Matrix4f projectionMatrix(int height, int width, float horzFov = 70.f * M_PI / 180.f, float zFar = 10000.f, float zNear = 0.1f)
 {
 	float vertFov = horzFov * float(height) / width;
 	Eigen::Matrix4f projection;
@@ -320,6 +320,7 @@ int main()
 	Mesh car6Mesh = loadMeshFile("../lexus_glass_2.obj");
 	Mesh car7Mesh = loadMeshFile("../lexus_grill.obj");
 	Mesh car8Mesh = loadMeshFile("../lexus_grill_2.obj");
+	Mesh roadMesh = loadMeshFile("../road.obj");
 
 	//TEXTURE LOADING
 	std::cout << "Loading Textures..." << std::endl;
@@ -336,8 +337,12 @@ int main()
 	lodepng::decode(grillTex, w6, h6, "../lexus_grill.png");
 	lodepng::decode(grill_2Tex, w7, h7, "../lexus_grill_2.png");
 
+	std::vector<uint8_t> roadTex;
+	unsigned roadW, roadH;
+	unsigned roadError = lodepng::decode(roadTex, roadW, roadH, "../road_diffuse.png");
+
 	//set up the Camera Lens
-	Eigen::Matrix4f projection = projectionMatrix(renderHeight, renderWidth, 70.f * M_PI / 180.f, 1000.f, 0.1f);
+	Eigen::Matrix4f projection = projectionMatrix(renderHeight, renderWidth, 70.f * M_PI / 180.f, 10000.f, 0.1f);
 
 	//move the camera back 8 units
 	Eigen::Matrix4f cameraToWorld = translationMatrix(Eigen::Vector3f(0.0f, 0.0f, -8.0f));
@@ -351,6 +356,8 @@ int main()
 
 	//position the Car
 	Eigen::Matrix4f carTransform = translationMatrix(Eigen::Vector3f(0.0f, -1.0f, 0.0f)) * rotateYMatrix(M_PI_4) * scaleMatrix(100.0f);
+
+	Eigen::Matrix4f roadTransform = translationMatrix(Eigen::Vector3f(0.0f, -1.05f,-50.0f)) * scaleMatrix(500.0f);
 
 	//RENDER!
 	std::cout << "Rendering Engine Starting..." << std::endl;
@@ -388,6 +395,16 @@ int main()
 	drawMesh(renderBuffer, zBuffer, car4Mesh,
 		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.0f, 1.0f, 1.0f), 128.f,
 		calliperTex, w4, h4, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+
+
+	drawMesh(renderBuffer, zBuffer, roadMesh,
+		Eigen::Vector3f(0.2f, 0.2f, 0.2f), 
+		Eigen::Vector3f(0.1f, 0.1f, 0.1f), 
+		5.0f,                              
+		roadTex, roadW, roadH,             
+		BLINN_PHONG, camWorldPos, roadTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+
+	std::cout << "Road Triangles: " << roadMesh.vFaces.size() << std::endl;
 
 	//SSAA DOWNSAMPLE
 	std::cout << "Applying Anti-Aliasing..." << std::endl;
