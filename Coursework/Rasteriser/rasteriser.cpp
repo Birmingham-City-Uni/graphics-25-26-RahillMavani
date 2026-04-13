@@ -345,7 +345,7 @@ int main()
 	Eigen::Matrix4f projection = projectionMatrix(renderHeight, renderWidth, 70.f * M_PI / 180.f, 10000.f, 0.1f);
 
 	//move the camera back 8 units
-	Eigen::Matrix4f cameraToWorld = translationMatrix(Eigen::Vector3f(0.0f, 0.0f, -8.0f));
+	Eigen::Matrix4f cameraToWorld = translationMatrix(Eigen::Vector3f(0.0f, 0.0f, -20.0f));
 	Eigen::Matrix4f worldToCamera = cameraToWorld.inverse();
 	Eigen::Vector3f camWorldPos = (cameraToWorld * Eigen::Vector4f(0, 0, 0, 1)).block<3, 1>(0, 0);
 
@@ -357,7 +357,7 @@ int main()
 	//position the Car
 	Eigen::Matrix4f carTransform = translationMatrix(Eigen::Vector3f(0.0f, -1.0f, 0.0f)) * rotateYMatrix(M_PI_4) * scaleMatrix(100.0f);
 
-	Eigen::Matrix4f roadTransform = translationMatrix(Eigen::Vector3f(0.0f, -1.05f,-50.0f)) * scaleMatrix(500.0f);
+	Eigen::Matrix4f roadTransform = translationMatrix(Eigen::Vector3f(0.0f, -1.05f, 0.0f)) * scaleMatrix(500.0f);
 
 	//RENDER!
 	std::cout << "Rendering Engine Starting..." << std::endl;
