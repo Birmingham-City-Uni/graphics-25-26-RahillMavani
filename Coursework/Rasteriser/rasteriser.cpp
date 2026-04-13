@@ -345,7 +345,7 @@ int main()
 	Eigen::Matrix4f projection = projectionMatrix(renderHeight, renderWidth, 70.f * M_PI / 180.f, 10000.f, 0.1f);
 
 	//move the camera back 8 units
-	Eigen::Matrix4f cameraToWorld = translationMatrix(Eigen::Vector3f(0.0f, 0.0f, -20.0f));
+	Eigen::Matrix4f cameraToWorld = translationMatrix(Eigen::Vector3f(0.0f, 0.0f, -8.0f));
 	Eigen::Matrix4f worldToCamera = cameraToWorld.inverse();
 	Eigen::Vector3f camWorldPos = (cameraToWorld * Eigen::Vector4f(0, 0, 0, 1)).block<3, 1>(0, 0);
 
