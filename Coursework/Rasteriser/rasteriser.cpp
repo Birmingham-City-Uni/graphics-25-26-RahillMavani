@@ -64,7 +64,9 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 	float specularExponent,
 	const std::vector<unsigned char>& textureData, unsigned texWidth, unsigned texHeight,
 	ShadingMode shadingMode,
-	const Eigen::Vector3f& camWorldPos)
+	const Eigen::Vector3f& camWorldPos,
+	float tileFactor = 1.0f)
+
 {
 	int minX, minY, maxX, maxY;
 	findScreenBoundingBox(t, width, height, minX, minY, maxX, maxY);
@@ -151,8 +153,8 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 						b2 * (t.texs[2] / depth2)) * depthP;
 
 				//wrap the UVs (prevents crashing if UVs go outside 0 to 1)
-				float u = texP.x() - floor(texP.x());
-				float v = texP.y() - floor(texP.y());
+				float u = (texP.x() * tileFactor) - floor(texP.x() * tileFactor);
+				float v = (texP.y() * tileFactor) - floor(texP.y() * tileFactor);
 
 				//convert UV to actual PNG pixel coordinates (Invert V because images load top-down)
 				int tx = static_cast<int>(u * (texWidth - 1));
@@ -228,7 +230,8 @@ void drawMesh(std::vector<unsigned char>& image,
 	const Eigen::Matrix4f& worldToCam,
 	const Eigen::Matrix4f& camToClip,
 	const std::vector<std::unique_ptr<Light>>& lights,
-	int width, int height)
+	int width, int height,
+	float tileFactor = 1.0f)
 {
 	for (int i = 0; i < mesh.vFaces.size(); ++i) {
 		Eigen::Vector3f
@@ -276,7 +279,7 @@ void drawMesh(std::vector<unsigned char>& image,
 		t.texs[1] = mesh.texs[mesh.tFaces[i][1]];
 		t.texs[2] = mesh.texs[mesh.tFaces[i][2]];
 
-		drawTriangle(image, width, height, zBuffer, t, lights, albedo, specularColor, specularExponent, textureData, texWidth, texHeight, shadingMode, camWorldPos);
+		drawTriangle(image, width, height, zBuffer, t, lights, albedo, specularColor, specularExponent, textureData, texWidth, texHeight, shadingMode, camWorldPos, tileFactor);
 	}
 }
 
@@ -320,14 +323,14 @@ int main()
 	Mesh car6Mesh = loadMeshFile("../lexus_glass_2.obj");
 	Mesh car7Mesh = loadMeshFile("../lexus_grill.obj");
 	Mesh car8Mesh = loadMeshFile("../lexus_grill_2.obj");
-	Mesh roadMesh = loadMeshFile("../road.obj");
+	Mesh roadMesh = loadMeshFile("../road2.obj");
 
 	//TEXTURE LOADING
 	std::cout << "Loading Textures..." << std::endl;
-	std::vector<uint8_t> bodyTex, glassTex, glass_2Tex, grillTex, grill_2Tex, wheelsTex, calliperTex;
+	std::vector<uint8_t> bodyTex, glassTex, glass_2Tex, grillTex, grill_2Tex, wheelsTex, calliperTex, roadTex;
 
 	//give each texture its own width and height variables
-	unsigned w1, h1, w2, h2, w3, h3, w4, h4, w5, h5, w6, h6, w7, h7;
+	unsigned w1, h1, w2, h2, w3, h3, w4, h4, w5, h5, w6, h6, w7, h7, w8, h8;
 
 	lodepng::decode(bodyTex, w1, h1, "../lexus_body.png");
 	lodepng::decode(glassTex, w2, h2, "../lexus_glass.png");
@@ -336,10 +339,7 @@ int main()
 	lodepng::decode(glass_2Tex, w5, h5, "../lexus_glass_2.png");
 	lodepng::decode(grillTex, w6, h6, "../lexus_grill.png");
 	lodepng::decode(grill_2Tex, w7, h7, "../lexus_grill_2.png");
-
-	std::vector<uint8_t> roadTex;
-	unsigned roadW, roadH;
-	unsigned roadError = lodepng::decode(roadTex, roadW, roadH, "../road_diffuse.png");
+	lodepng::decode(roadTex, w8, h8, "../road2.png");
 
 	//set up the Camera Lens
 	Eigen::Matrix4f projection = projectionMatrix(renderHeight, renderWidth, 70.f * M_PI / 180.f, 10000.f, 0.1f);
@@ -357,7 +357,7 @@ int main()
 	//position the Car
 	Eigen::Matrix4f carTransform = translationMatrix(Eigen::Vector3f(0.0f, -1.0f, 0.0f)) * rotateYMatrix(M_PI_4) * scaleMatrix(100.0f);
 
-	Eigen::Matrix4f roadTransform = translationMatrix(Eigen::Vector3f(0.0f, -1.05f, 0.0f)) * scaleMatrix(500.0f);
+	Eigen::Matrix4f roadTransform = translationMatrix(Eigen::Vector3f(0.0f, -5.05f, 0.0f)) * scaleMatrix(500.0f);
 
 	//RENDER!
 	std::cout << "Rendering Engine Starting..." << std::endl;
@@ -401,8 +401,8 @@ int main()
 		Eigen::Vector3f(0.2f, 0.2f, 0.2f), 
 		Eigen::Vector3f(0.1f, 0.1f, 0.1f), 
 		5.0f,                              
-		roadTex, roadW, roadH,             
-		BLINN_PHONG, camWorldPos, roadTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
+		roadTex, w8, h8,             
+		BLINN_PHONG, camWorldPos, roadTransform, worldToCamera, projection, lights, renderWidth, renderHeight, 500.0f);
 
 	std::cout << "Road Triangles: " << roadMesh.vFaces.size() << std::endl;
 
