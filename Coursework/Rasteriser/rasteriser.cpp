@@ -65,7 +65,8 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 	const std::vector<unsigned char>& textureData, unsigned texWidth, unsigned texHeight,
 	ShadingMode shadingMode,
 	const Eigen::Vector3f& camWorldPos,
-	float tileFactor = 1.0f)
+	float tileFactor = 1.0f,
+	float alpha = 1.0f)
 
 {
 	int minX, minY, maxX, maxY;
@@ -169,6 +170,11 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 				);
 			}
 			
+		//calculate how bright this pixel is(Luminance)
+			float pixelBrightness = (finalAlbedo.x() * 0.299f) + (finalAlbedo.y() * 0.587f) + (finalAlbedo.z() * 0.114f);
+
+		//texture's brightness
+		Eigen::Vector3f mappedSpecularColor = specularColor * pixelBrightness;
 
 			// Iterate over lights, and sum to find colour.
 			for (auto& light : lights) {
@@ -186,7 +192,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 						specularTerm = blinnPhongSpecularTerm(incomingLightDir, normP, viewDir, specularExponent);
 					}
 
-					Eigen::Vector3f specularOut = specularColor * specularTerm;
+					Eigen::Vector3f specularOut = mappedSpecularColor * specularTerm;
 					specularOut = coeffWiseMultiply(specularOut, lightIntensity);
 
 					float dotProd = normP.dot(-incomingLightDir);
@@ -204,12 +210,23 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 				}
 			}
 
-			Color c;
-			// Gamma-correcting colours.
-			c.r = std::min(powf(color.x(), 1 / 2.2f), 1.0f) * 255;
-			c.g = std::min(powf(color.y(), 1 / 2.2f), 1.0f) * 255;
-			c.b = std::min(powf(color.z(), 1 / 2.2f), 1.0f) * 255;
+			//calculate the new pixel color
+			float outR = std::min(powf(color.x(), 1 / 2.2f), 1.0f) * 255.0f;
+			float outG = std::min(powf(color.y(), 1 / 2.2f), 1.0f) * 255.0f;
+			float outB = std::min(powf(color.z(), 1 / 2.2f), 1.0f) * 255.0f;
 
+			//fnid the existing pixel in the image buffer (the background)
+			int pIdx = (y * width + x) * 4;
+			float bgR = image[pIdx + 0];
+			float bgG = image[pIdx + 1];
+			float bgB = image[pIdx + 2];
+
+			Color c;
+
+			//mix the new color and background color
+			c.r = static_cast<uint8_t>((outR * alpha) + (bgR * (1.0f - alpha)));
+			c.g = static_cast<uint8_t>((outG * alpha) + (bgG * (1.0f - alpha)));
+			c.b = static_cast<uint8_t>((outB * alpha) + (bgB * (1.0f - alpha)));
 			c.a = 255;
 
 			setPixel(image, x, y, width, height, c);
@@ -231,7 +248,8 @@ void drawMesh(std::vector<unsigned char>& image,
 	const Eigen::Matrix4f& camToClip,
 	const std::vector<std::unique_ptr<Light>>& lights,
 	int width, int height,
-	float tileFactor = 1.0f)
+	float tileFactor = 1.0f,
+	float alpha = 1.0f)
 {
 	for (int i = 0; i < mesh.vFaces.size(); ++i) {
 		Eigen::Vector3f
@@ -279,7 +297,7 @@ void drawMesh(std::vector<unsigned char>& image,
 		t.texs[1] = mesh.texs[mesh.tFaces[i][1]];
 		t.texs[2] = mesh.texs[mesh.tFaces[i][2]];
 
-		drawTriangle(image, width, height, zBuffer, t, lights, albedo, specularColor, specularExponent, textureData, texWidth, texHeight, shadingMode, camWorldPos, tileFactor);
+		drawTriangle(image, width, height, zBuffer, t, lights, albedo, specularColor, specularExponent, textureData, texWidth, texHeight, shadingMode, camWorldPos, tileFactor, alpha);
 	}
 }
 
@@ -352,7 +370,7 @@ int main()
 	//set up the Lights
 	std::vector<std::unique_ptr<Light>> lights;
 	lights.emplace_back(new AmbientLight(Eigen::Vector3f(0.3f, 0.3f, 0.3f)));
-	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.9f, 0.9f, 0.9f), Eigen::Vector3f(0.5f, -1.0f, 1.f)));
+	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.9f, 0.9f, 0.9f), Eigen::Vector3f(0.5f, -1.0f, -1.0f)));
 
 	//position the Car
 	Eigen::Matrix4f carTransform = translationMatrix(Eigen::Vector3f(0.0f, -1.0f, 0.0f)) * rotateYMatrix(M_PI_4) * scaleMatrix(100.0f);
@@ -364,16 +382,8 @@ int main()
 
 	//CAR BODY 
 	drawMesh(renderBuffer, zBuffer, carMesh,
-		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.0f, 1.0f, 1.0f), 128.f,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(2.0f, 2.0f, 2.0f), 64.f,
 		bodyTex, w1, h1, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
-
-	//GLASS
-	drawMesh(renderBuffer, zBuffer, car5Mesh,
-		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.5f, 1.5f, 1.5f), 512.f,
-		glassTex, w2, h2, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
-	drawMesh(renderBuffer, zBuffer, car6Mesh,
-		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.5f, 1.5f, 1.5f), 512.f,
-		glass_2Tex, w5, h5, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight);
 
 	//WHEELS / RUBBER
 	drawMesh(renderBuffer, zBuffer, car2Mesh,
@@ -403,6 +413,14 @@ int main()
 		5.0f,                              
 		roadTex, w8, h8,             
 		BLINN_PHONG, camWorldPos, roadTransform, worldToCamera, projection, lights, renderWidth, renderHeight, 500.0f);
+
+	//GLASS
+	drawMesh(renderBuffer, zBuffer, car5Mesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.5f, 1.5f, 1.5f), 512.f,
+		glassTex, w2, h2, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight, 1.0f, 0.4f);
+	drawMesh(renderBuffer, zBuffer, car6Mesh,
+		Eigen::Vector3f::Zero(), Eigen::Vector3f(1.5f, 1.5f, 1.5f), 512.f,
+		glass_2Tex, w5, h5, BLINN_PHONG, camWorldPos, carTransform, worldToCamera, projection, lights, renderWidth, renderHeight, 1.0f, 0.4f);
 
 	std::cout << "Road Triangles: " << roadMesh.vFaces.size() << std::endl;
 
