@@ -24,15 +24,25 @@ public:
 		int currBounceCount,
 		const int maxBounces) const
 	{
-		Eigen::Vector3f albedo;
+		// --- 1. SAFETY CHECK: PREVENT CRASH IF PNG FAILED TO LOAD ---
+		if (albedoTexture_->empty() || texWidth_ == 0 || texHeight_ == 0) {
+			return Eigen::Vector3f(1.0f, 0.0f, 1.0f); // Return bright pink to warn us!
+		}
 
+		Eigen::Vector3f albedo;
 		Eigen::Vector2f tex = hitInfo.texCoords;
-		int pixX = static_cast<int>(tex.x() * texWidth_);
-		int pixY = static_cast<int>((1.f - tex.y()) * texHeight_);
-		pixX = std::max(pixX, 0);
-		pixY = std::max(pixY, 0);
-		pixX = std::min(pixX, texWidth_);
-		pixY = std::min(pixY, texHeight_);
+
+		// --- 2. WRAP UVS: ALLOWS TEXTURES TO TILE PERFECTLY ---
+		float u = tex.x() - std::floor(tex.x());
+		float v = tex.y() - std::floor(tex.y());
+
+		// --- 3. CONVERT TO PIXEL COORDINATES ---
+		int pixX = static_cast<int>(u * texWidth_);
+		int pixY = static_cast<int>((1.f - v) * texHeight_);
+
+		// --- 4. STRICT CLAMPING: MUST SUBTRACT 1 TO PREVENT CRASHES ---
+		pixX = std::max(0, std::min(pixX, texWidth_ - 1));
+		pixY = std::max(0, std::min(pixY, texHeight_ - 1));
 
 		albedo.x() = static_cast<float>((*albedoTexture_)[(pixX + texWidth_ * pixY) * 4 + 0]) / 255.f;
 		albedo.y() = static_cast<float>((*albedoTexture_)[(pixX + texWidth_*pixY)*4 + 1]) / 255.f;
