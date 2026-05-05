@@ -157,20 +157,42 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 				float u = (texP.x() * tileFactor) - floor(texP.x() * tileFactor);
 				float v = (texP.y() * tileFactor) - floor(texP.y() * tileFactor);
 
-				//convert UV to actual PNG pixel coordinates (Invert V because images load top-down)
-				int tx = static_cast<int>(u * (texWidth - 1));
-				int ty = static_cast<int>((1.0f - v) * (texHeight - 1));
+				//BILINEAR TEXTURE FILTERING
+				//mixing 4 pixels and avg it 
+				float floatX = u * (texWidth - 1);
+				float floatY = (1.0f - v) * (texHeight - 1);
 
-				//fetch the RGB color from the Substance Painter texture
-				int texIdx = (ty * texWidth + tx) * 4;
-				finalAlbedo = Eigen::Vector3f(
-					textureData[texIdx] / 255.0f,
-					textureData[texIdx + 1] / 255.0f,
-					textureData[texIdx + 2] / 255.0f
-				);
+				//get the integer coordinates of the top-left pixel
+				int x0 = static_cast<int>(floatX);
+				int y0 = static_cast<int>(floatY);
+
+				//get the next pixel over
+				int x1 = std::min(x0 + 1, (int)texWidth - 1);
+				int y1 = std::min(y0 + 1, (int)texHeight - 1);
+
+				//get the fractional decimals for mixing
+				float weightX = floatX - x0;
+				float weightY = floatY - y0;
+
+				//quick lambda function to fetch a pixel safely
+				auto fetchPixel = [&](int x, int y) -> Eigen::Vector3f {
+					int idx = (y * texWidth + x) * 4;
+					return Eigen::Vector3f(textureData[idx] / 255.0f, textureData[idx + 1] / 255.0f, textureData[idx + 2] / 255.0f);
+					};
+
+				// grab the 4 surrounding pixels
+				Eigen::Vector3f c00 = fetchPixel(x0, y0); // Top-Left
+				Eigen::Vector3f c10 = fetchPixel(x1, y0); // Top-Right
+				Eigen::Vector3f c01 = fetchPixel(x0, y1); // Bottom-Left
+				Eigen::Vector3f c11 = fetchPixel(x1, y1); // Bottom-Right
+
+				//mix horizontally, then mix vertically (lerp)
+				Eigen::Vector3f topMix = c00 * (1.0f - weightX) + c10 * weightX;
+				Eigen::Vector3f botMix = c01 * (1.0f - weightX) + c11 * weightX;
+				finalAlbedo = topMix * (1.0f - weightY) + botMix * weightY;
 			}
 			
-		//calculate how bright this pixel is(Luminance)
+		//calculate how bright this pixel is (Luminance)
 			float pixelBrightness = (finalAlbedo.x() * 0.299f) + (finalAlbedo.y() * 0.587f) + (finalAlbedo.z() * 0.114f);
 
 		//texture's brightness
@@ -302,10 +324,6 @@ void drawMesh(std::vector<unsigned char>& image,
 }
 
 
-
-
-
-
 int main()
 {
 	std::string outputFilename = "lexus_render.png";
@@ -370,7 +388,11 @@ int main()
 	//set up the Lights
 	std::vector<std::unique_ptr<Light>> lights;
 	lights.emplace_back(new AmbientLight(Eigen::Vector3f(0.3f, 0.3f, 0.3f)));
-	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.9f, 0.9f, 0.9f), Eigen::Vector3f(0.5f, -1.0f, -1.0f)));
+	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.5f, 0.5f, 0.5f), Eigen::Vector3f(0.5f, -1.0f, -1.0f)));
+
+	//point light added
+	lights.emplace_back(new PointLight(Eigen::Vector3f(1.0f, 0.4f, 0.1f) * 200.0f, Eigen::Vector3f(8.0f, 3.0f, 5.0f)));
+
 
 	//position the Car
 	Eigen::Matrix4f carTransform = translationMatrix(Eigen::Vector3f(0.0f, -1.0f, 0.0f)) * rotateYMatrix(M_PI_4) * scaleMatrix(100.0f);
@@ -445,11 +467,27 @@ int main()
 				}
 			}
 
-			//average the colors and save to the final 1080p image
+			//Vignette
+			// Average the colors from our SSAA buffer
+			float finalR = r / (aaMultiplier * aaMultiplier);
+			float finalG = g / (aaMultiplier * aaMultiplier);
+			float finalB = b / (aaMultiplier * aaMultiplier);
+
+			
+			// Calculate distance from the center of the screen to darken edges
+			float centerX = finalWidth / 2.0f;
+			float centerY = finalHeight / 2.0f;
+			float dist = sqrt(pow(x - centerX, 2) + pow(y - centerY, 2));
+			float maxDist = sqrt(pow(centerX, 2) + pow(centerY, 2));
+
+			float vignette = 1.0f - pow(dist / maxDist, 2.0f);
+			vignette = std::max(0.2f, vignette); // Don't let corners go pitch black
+
+			// Apply vignette and save to the final image
 			int fIdx = (y * finalWidth + x) * 4;
-			finalImage[fIdx + 0] = r / (aaMultiplier * aaMultiplier);
-			finalImage[fIdx + 1] = g / (aaMultiplier * aaMultiplier);
-			finalImage[fIdx + 2] = b / (aaMultiplier * aaMultiplier);
+			finalImage[fIdx + 0] = static_cast<uint8_t>(finalR * vignette);
+			finalImage[fIdx + 1] = static_cast<uint8_t>(finalG * vignette);
+			finalImage[fIdx + 2] = static_cast<uint8_t>(finalB * vignette);
 			finalImage[fIdx + 3] = 255;
 		}
 	}
