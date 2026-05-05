@@ -8,6 +8,7 @@ Use this file to credit any 3rd party resources used to implement your coursewor
 * **Lexus LFA 2012 3D Model:** Downloaded from [Sketchfab] by [Ddiaz Design]. Available at: (https://sketchfab.com/3d-models/2012-lexus-lfa-nurburgring-package-c9d725a16ea6424fa74403b5138808b2)
 * **Road/Asphalt PBR Textures:** Downloaded from [Sketchfab]. Available at: (https://sketchfab.com/3d-models/drift-race-track-free-b4108132c93f4736957d97e274fbd11e)
 * **Showroom** Downloaded from [Sketchfab]. Available at: (https://sketchfab.com/3d-models/car-showroom-2-e7a3497e8a7c487e906b2d8814b018f0)
+* **Background Image** Downloaded from [pexels]. Available at: (https://www.pexels.com/photo/timelapse-photography-of-stars-at-night-169789/)
 
 ## Code & Implementation Assistance
 
