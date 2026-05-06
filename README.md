@@ -1,41 +1,32 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/6itnWvSn)
-# CMP5359 Computer Graphics 
-## Coursework and Lab Starter Repo
-### Using this repo
 
-This repo should be used for all of your work for the CMP5359 Computer Graphics module. It is where you should work on the labs, and also submit your final coursework by creating a GitHub release.
+To compile and run Rasteriser code:-
 
-Please remember you are marked on regularly committing to this repository - this will form an important part of your Milestone marks!
+Please extract road2.zip file in the same folder and then run the code, as road2.obj is larger than 100mb.
 
-### Structure
+thanks.
 
-The `Labs` folder contains starter code for your lab activities. These can be compiled using CMake as detailed below.
+# References
 
-The `Coursework` folder contains folders and starter code for your three coursework tasks, the Pathtracer, Raytracer and Rasteriser. You may choose to use this starter code, or write your own. See the Submitting and CMake sections below for how to format your submission, and how to compile the code.
+Use this file to credit any 3rd party resources used to implement your coursework, such as meshes and textures, providing URLs (web links) for each.
 
-### Compiling with CMake
+## Coursework 3D Models & Textures
 
-Each of the subfolders, e.g. `Labs/Week1` or `Coursework/Rasteriser` contains a CMake project - note each contains a `CMakeLists.txt` file. To compile each, open up the CMake-GUI application. If you're working on your own machine, you can get CMake here https://cmake.org/download/ . Get the Binary version (probably `Windows x64 Installer`, but versions for Mac and Linux are available).
+* **Lexus LFA 2011 3D Model:** Downloaded from [Sketchfab] by [Ddiaz Design]. Available at: (https://sketchfab.com/3d-models/2011-lexus-lfa-83d062d1cd144e6a944c7415ef864889)
+* **Lexus LFA 2012 3D Model:** Downloaded from [Sketchfab] by [Ddiaz Design]. Available at: (https://sketchfab.com/3d-models/2012-lexus-lfa-nurburgring-package-c9d725a16ea6424fa74403b5138808b2)
+* **Road/Asphalt PBR Textures:** Downloaded from [Sketchfab]. Available at: (https://sketchfab.com/3d-models/drift-race-track-free-b4108132c93f4736957d97e274fbd11e)
+* **Showroom** Downloaded from [Sketchfab]. Available at: (https://sketchfab.com/3d-models/car-showroom-2-e7a3497e8a7c487e906b2d8814b018f0)
+* **Background Image** Downloaded from [pexels]. Available at: (https://www.pexels.com/photo/timelapse-photography-of-stars-at-night-169789/)
 
-There are two boxes at the top where you enter the *source* and *build* directories. 
+## Code & Implementation Assistance
 
-In the "Where is the source code" box at the top, enter the full path to the folder containing `CMakeLists.txt`. You can also use the "Browse Source" button to find the folder in a GUI window. For example, this might be `C:\Users\student\Documents\GitHub\CMP5359\Labs\Week1`.
+* **AI Code Generation (Google Gemini):** Used as an interactive tutor to help derive the mathematical implementations and C++ syntax for some Advanced Features in the Raytracer. 
+  * Specifically assisted with: Area Light Approximation (Soft Shadows) and Specular Mapping.
+  * *(Note: All AI-generated logic blocks are explicitly wrapped in `/* source from AI (Gemini) starts/ends here */` tags directly within the source code to clearly distinguish them).*
 
-In the "Where to build the binaries" directory, select a folder called "build" within the source directory. For example, this might be `C:\Users\student\Documents\GitHub\CMP5359\Labs\Week1\build`
+---
 
-**Very Important**: You *must* select a build folder within each project as the "Where to build the binaries" option. If you select the source directory or any other directory you will run into multiple issues, including the app being unable to find files, and clogging up your GitHub with lots of unnecessary files. 
+## Labs Starter Code (Provided by Module)
 
-Click "Configure", "Generate" and then open in Visual Studio, either using the third button below, or by going into the build folder and opening the `.sln` file.
-
-When running, remember that you will likely need to select a project in the Solution Explorer on the right, and then right click and "Set as Startup Project" before running and debugging.
-
-### Submitting
-
-Your submitted coursework code should be contained in the `Coursework` directory, as follows:
-
-* `Coursework/Rendered_Images`: Should contained 4 image files - your reference screenshot, and rendered images from your 3 rendering approaches (rasteriser, raytracer, pathtracer).
-* `Coursework/Rasteriser`: C++ Code for your rasteriser.
-* `Coursework/Raytracer`: C++ Code for your raytracer.
-* `Coursework/Pathtracer`: Blender file (.blend format) containing your path-traced scene. I recommend leaving this outside the repo until you are ready, to avoid saving multiple versions of this large binary file.
-
-I must be able to compile and run your code on the lab machines. I recommend building on the starter code and using CMake, but use of Visual Studio is acceptable (if you do, make sure you're using relative directories, i.e. `$(SolutionDir)` when setting up include directories so it will compile on other computers).
+* Bunny, Armadillo and Chinese Dragon from the [Stanford 3D Scanning Repository](https://graphics.stanford.edu/data/3Dscanrep/) (models have been tidied and decimated).
+* Textured Stanford Bunny (model and UVs) by [001comic@sketchfab.com](https://sketchfab.com/3d-models/stanford-bunny-883eec40ad724aeab2f3ca101420db33) (some modifications made to texture to avoid seams).
+* Spot the Cow test model by [Keenan Crane](https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/#spot)
