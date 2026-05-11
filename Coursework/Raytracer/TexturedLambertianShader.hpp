@@ -24,7 +24,7 @@ public:
 		int currBounceCount,
 		const int maxBounces) const
 	{
-		// --- 1. SAFETY CHECK: PREVENT CRASH IF PNG FAILED TO LOAD ---
+		//SAFETY CHECK: PREVENT CRASH IF PNG FAILED TO LOAD
 		if (albedoTexture_->empty() || texWidth_ == 0 || texHeight_ == 0) {
 			return Eigen::Vector3f(1.0f, 0.0f, 1.0f); // Return bright pink to warn us!
 		}
@@ -32,15 +32,15 @@ public:
 		Eigen::Vector3f albedo;
 		Eigen::Vector2f tex = hitInfo.texCoords;
 
-		// --- 2. WRAP UVS: ALLOWS TEXTURES TO TILE PERFECTLY ---
+		//WRAP UVS: ALLOWS TEXTURES TO TILE PERFECTLY
 		float u = tex.x() - std::floor(tex.x());
 		float v = tex.y() - std::floor(tex.y());
 
-		// --- 3. CONVERT TO PIXEL COORDINATES ---
+		//CONVERT TO PIXEL COORDINATES
 		int pixX = static_cast<int>(u * texWidth_);
 		int pixY = static_cast<int>((1.f - v) * texHeight_);
 
-		// --- 4. STRICT CLAMPING: MUST SUBTRACT 1 TO PREVENT CRASHES ---
+		//STRICT CLAMPING: MUST SUBTRACT 1 TO PREVENT CRASHES
 		pixX = std::max(0, std::min(pixX, texWidth_ - 1));
 		pixY = std::max(0, std::min(pixY, texHeight_ - 1));
 

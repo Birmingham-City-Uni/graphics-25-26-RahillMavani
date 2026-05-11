@@ -131,6 +131,7 @@ int main(int argc, char* argv[]) {
 	Model calliperModel("../models/lexus_calliper.obj");
 	Model calliper2Model("../models/lexus_calliper_2.obj");
 
+	//BVH
 	// Wrap geometry and shaders into BVH nodes for accelerated intersection testing, then add to scene
 	scene.renderables.push_back(std::make_shared<BVHNode>(carBodyModel, &bodyShader, 4, carTransform));
 	scene.renderables.push_back(std::make_shared<BVHNode>(roadModel, &roadShader, 4, roadTransform));
@@ -176,6 +177,7 @@ int main(int argc, char* argv[]) {
 		for (int x = 0; x < pixWidth; ++x) {
 			Eigen::Vector3f finalColor(0.f, 0.f, 0.f);
 
+			//SSAA
 			// 2x2 Supersampling grid for Anti-Aliasing
 			int gridSize = 2;
 
@@ -198,6 +200,7 @@ int main(int argc, char* argv[]) {
 							lightSources, ambientLight,
 							0, config["maxBounces"]);
 
+						//FOG
 						// Volumetric integration: Distance Fog
 						// Linearly interpolates between the shaded surface color and the ambient fog color based on intersection depth.
 

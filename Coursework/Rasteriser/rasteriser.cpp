@@ -104,6 +104,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 			// Get the depths from the camera-space position of the 3 corners.
 			float depth0 = t.cam[0].z(), depth1 = t.cam[1].z(), depth2 = t.cam[2].z();
 
+			//Z-BUFFER
 			// Work out the depth at the point P
 			float dP = b0 * (1.0f / depth0) + b1 * (1.0f / depth1) + b2 * (1.0f / depth2);
 			float depthP = 1.0f / dP;
@@ -128,6 +129,8 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 			// Interpolate to find the correct clip-space depth (correct this version to be perspective-correct)
 			// This won't make too much of a difference in this case, but technically this version does use slightly
 			// incorrect depths.
+
+			
 			float depth = (b0 * (t.screen[0].z() / depth0) +
 				b1 * (t.screen[1].z() / depth1) +
 				b2 * (t.screen[2].z() / depth2)) * depthP;
@@ -145,7 +148,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 			//WEEK 6 TEXTURE MAPPING
 			Eigen::Vector3f finalAlbedo = albedo; // Default to the solid math color
 
-
+			//TEXTURING
 			if (!textureData.empty()) {
 				//perspective-correct UV interpolation
 				Eigen::Vector2f texP =
@@ -192,6 +195,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 				finalAlbedo = topMix * (1.0f - weightY) + botMix * weightY;
 			}
 			
+			//SPECULAR MAPPING
 		//calculate how bright this pixel is (Luminance)
 			float pixelBrightness = (finalAlbedo.x() * 0.299f) + (finalAlbedo.y() * 0.587f) + (finalAlbedo.z() * 0.114f);
 
@@ -206,6 +210,8 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 				if (light->getType() != Light::Type::AMBIENT) {
 					Eigen::Vector3f incomingLightDir = light->getDirection(worldP);
 
+
+					//BLINN PHONG
 					float specularTerm;
 					if (shadingMode == ShadingMode::PHONG) {
 						specularTerm = phongSpecularTerm(incomingLightDir, normP, viewDir, specularExponent);
